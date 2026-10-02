@@ -22,6 +22,7 @@ en tal fecha?".
   Con ella se cifran las contraseñas de los routers guardadas en la base: si
   cambia, quedan ilegibles y hay que volver a cargarlas todas.
 - **Nunca borrar `/etc/ip-tracker.env`** ni la base (`/opt/ip-tracker/ip_tracker.db`).
+- **Antes de actualizar, hacer un backup** (`sudo systemctl start ip-tracker-backup`).
 - **No correr dos instancias** contra la misma base (por ejemplo, el servicio
   y un `python app.py` a mano): los dos sondean los routers.
 - **No exponer el puerto 5001 a internet.** Limitarlo a la red de gestión
@@ -60,7 +61,9 @@ sudo bash /opt/ip-tracker/install.sh
 3. la primera vez, crea `/etc/ip-tracker.env` (permisos 600) con `SECRET_KEY`
    y `DATABASE_URL`; si ya existe, no lo toca;
 4. crea la base y el usuario `admin` con una contraseña al azar;
-5. instala y arranca el servicio `ip-tracker`.
+5. instala y arranca el servicio `ip-tracker`;
+6. activa el backup diario (`ip-tracker-backup.timer`, a las 03:00, 14 días
+   en `/var/backups/ip-tracker/`).
 
 Al final muestra una línea así, que hay que pasarle al usuario:
 
@@ -115,10 +118,36 @@ el siguiente ciclo (5 minutos por defecto, se cambia en Configuración).
 | Reiniciar | `sudo systemctl restart ip-tracker` |
 | Nueva contraseña de admin | `sudo bash /opt/ip-tracker/admin.sh reset-password` |
 | Actualizar | `cd /opt/ip-tracker && sudo git -c safe.directory=/opt/ip-tracker pull origin main && sudo bash install.sh` |
-| Backup de la base | `sudo systemctl stop ip-tracker && sudo cp /opt/ip-tracker/ip_tracker.db /root/ip_tracker-$(date +%F).db && sudo systemctl start ip-tracker` |
+| Backup inmediato | `sudo systemctl start ip-tracker-backup` (queda en `/var/backups/ip-tracker/`) |
+| Ver los backups | `systemctl list-timers ip-tracker-backup.timer` y `sudo ls -l /var/backups/ip-tracker/` |
+
+### Backups
+
+Para restaurar una copia:
+
+```bash
+sudo systemctl stop ip-tracker
+sudo cp /opt/ip-tracker/ip_tracker.db /opt/ip-tracker/ip_tracker.db.antes-de-restaurar
+sudo install -o iptracker -g iptracker -m 644 /var/backups/ip-tracker/ip_tracker-AAAAMMDD-HHMMSS.db /opt/ip-tracker/ip_tracker.db
+sudo systemctl start ip-tracker
+```
+
+Antes de actualizar, hacer un backup inmediato.
 
 El `safe.directory` hace falta porque la carpeta es del usuario `iptracker` y
 git rechaza operar como root sobre ella ("dubious ownership").
+
+**Instalaciones sin git** (hechas con `bootstrap.sh`, sin `/opt/ip-tracker/.git`):
+clonar en una carpeta temporal y correr su `install.sh`. Copia el repo
+(incluido `.git`) sobre `/opt/ip-tracker` sin tocar la base, así que las
+siguientes actualizaciones ya son con `git pull`:
+
+```bash
+sudo systemctl stop ip-tracker
+sudo cp /opt/ip-tracker/ip_tracker.db /root/ip_tracker-antes-de-actualizar.db
+git clone https://github.com/marioclep/ip-tracker.git /tmp/ip-tracker
+sudo bash /tmp/ip-tracker/install.sh && rm -rf /tmp/ip-tracker
+```
 
 Actualizar con `install.sh` conserva `/etc/ip-tracker.env`, la base y la
 contraseña. En instalaciones anteriores a este archivo, que guardaban la
@@ -137,10 +166,6 @@ contraseña. En instalaciones anteriores a este archivo, que guardaban la
 
 ### Problemas conocidos
 
-- El botón **Backup** de la web copia `/opt/ip-tracker/instance/ip_tracker.db`,
-  pero el servicio usa `/opt/ip-tracker/ip_tracker.db`: descarga una base
-  vacía. Mientras no se corrija, usar el backup por consola de la tabla de
-  arriba.
 - Los intentos fallidos de login se cuentan en memoria: se reinician al
   reiniciar el servicio.
 
@@ -148,12 +173,12 @@ contraseña. En instalaciones anteriores a este archivo, que guardaban la
 
 | Qué | Dónde |
 |---|---|
-| Rutas, sondeo, autenticación y comandos `init-admin` / `reset-password` | `app.py` |
+| Rutas, sondeo, autenticación, backups y comandos `init-admin` / `reset-password` / `backup` | `app.py` |
 | Modelos y cifrado de las contraseñas de routers | `models.py` |
 | Cliente de la API de MikroTik | `mikrotik.py` |
 | Plantillas (Jinja2 + Bootstrap 5) | `templates/` |
 | Tests | `tests/`, con fixtures en `conftest.py` |
-| Instalación y administración | `install.sh`, `admin.sh`, `bootstrap.sh`, `ip-tracker.service` |
+| Instalación y administración | `install.sh`, `admin.sh`, `bootstrap.sh`, `ip-tracker.service`, `ip-tracker-backup.service` y `.timer` |
 
 Para correrlo a mano:
 

@@ -1,0 +1,11 @@
+[Unit]
+Description=IP Tracker - backup de la base de datos
+
+[Service]
+Type=oneshot
+User=iptracker
+Group=iptracker
+WorkingDirectory=/opt/ip-tracker
+EnvironmentFile=/etc/ip-tracker.env
+ExecStart=/opt/ip-tracker/.venv/bin/python app.py backup /var/backups/ip-tracker --keep-days 14
+SyslogIdentifier=ip-tracker-backup

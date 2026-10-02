@@ -1,0 +1,10 @@
+[Unit]
+Description=IP Tracker - backup diario de la base de datos
+
+[Timer]
+# Hora local del servidor. Persistent: si estaba apagado, corre al arrancar.
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

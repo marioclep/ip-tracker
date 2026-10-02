@@ -20,6 +20,7 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/ip-tracker}"
 SERVICE_USER="iptracker"
 SERVICE_FILE="/etc/systemd/system/ip-tracker.service"
 ENV_FILE="/etc/ip-tracker.env"
+BACKUP_DIR="/var/backups/ip-tracker"
 
 info "Directorio fuente: $SCRIPT_DIR"
 info "Directorio destino: $INSTALL_DIR"
@@ -69,9 +70,12 @@ else
     info "Configuracion guardada en $ENV_FILE."
 fi
 
-info "Instalando servicio systemd..."
-cp "$SCRIPT_DIR/ip-tracker.service" "$SERVICE_FILE"
-sed -i "s|/opt/ip-tracker|$INSTALL_DIR|g" "$SERVICE_FILE"
+info "Instalando servicio systemd y backup diario..."
+for unit in ip-tracker.service ip-tracker-backup.service ip-tracker-backup.timer; do
+    cp "$SCRIPT_DIR/$unit" "/etc/systemd/system/$unit"
+    sed -i "s|/opt/ip-tracker|$INSTALL_DIR|g" "/etc/systemd/system/$unit"
+done
+install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 700 "$BACKUP_DIR"
 
 info "Preparando base de datos y usuario administrador..."
 ADMIN_MSG=$(ENV_FILE="$ENV_FILE" bash "$INSTALL_DIR/admin.sh" init-admin 2>/dev/null) \
@@ -80,10 +84,12 @@ ADMIN_MSG=$(ENV_FILE="$ENV_FILE" bash "$INSTALL_DIR/admin.sh" init-admin 2>/dev/
 systemctl daemon-reload
 systemctl enable ip-tracker
 systemctl restart ip-tracker
+systemctl enable --now ip-tracker-backup.timer
 
 info "Instalacion completada."
 echo ""
 info "IP Tracker esta corriendo en http://$(hostname -I | awk '{print $1}'):5001"
+info "Backup diario a las 03:00 en $BACKUP_DIR (se guardan 14 dias)."
 info "$ADMIN_MSG"
 if [[ "$ADMIN_MSG" == Contraseña* ]]; then
     warn "Guarda esta contraseña: no se vuelve a mostrar. Podes cambiarla en Configuracion."

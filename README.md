@@ -14,7 +14,7 @@ Aplicacion web Flask para registrar y consultar asignaciones IP (DHCPv4, PPPoE e
 - **CRUD de routers** — Alta, baja y edicion de routers MikroTik
 - **Polling automatico** — Recolecta datos de routers por scheduler configurable
 - **Metricas del sistema** — CPU, memoria y disco
-- **Backup de base de datos** — Exportacion de SQLite
+- **Backups** — Diario automatico (14 dias) y descarga desde la web
 - **Auth seguro** — Login con proteccion anti-brute-force y CSRF
 
 ## Requisitos
@@ -107,6 +107,15 @@ sudo bash install.sh
 `install.sh` conserva la configuracion y la base existentes. En instalaciones
 anteriores, que guardaban la `SECRET_KEY` en la unidad systemd, la reutiliza.
 
+## Backups
+
+Todos los dias a las 03:00 se guarda una copia de la base en
+`/var/backups/ip-tracker/` y se conservan 14 dias (timer de systemd
+`ip-tracker-backup.timer`). Backup inmediato:
+`sudo systemctl start ip-tracker-backup`. Tambien se puede descargar desde
+Configuracion. Las copias quedan en el mismo servidor: conviene llevarlas a
+otro equipo. Como restaurar: ver [`MANUAL.md`](MANUAL.md#backup).
+
 ## Tests
 
 ```bash
@@ -125,6 +134,7 @@ anteriores, que guardaban la `SECRET_KEY` en la unidad systemd, la reutiliza.
 ├── admin.sh            # Comandos de administracion (reset-password)
 ├── bootstrap.sh        # Script de deployment desde /tmp/
 ├── ip-tracker.service  # Unidad systemd
+├── ip-tracker-backup.* # Backup diario (servicio y timer de systemd)
 ├── templates/          # Templates Jinja2 (Bootstrap 5)
 │   ├── base.html
 │   ├── login.html

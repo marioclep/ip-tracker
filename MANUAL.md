@@ -197,17 +197,38 @@ Consulta datos publicos de una direccion IP via RDAP (whois moderno).
 
 ## Backup
 
-Descarga una copia de la base de datos SQLite completa.
+### Automatico
+
+Todos los dias a las 03:00 (hora del servidor) se guarda una copia completa
+de la base en `/var/backups/ip-tracker/`, con nombre
+`ip_tracker-AAAAMMDD-HHMMSS.db`. Se conservan 14 dias. Si el servidor estaba
+apagado a esa hora, la copia se hace al arrancar.
+
+- Ver cuando corrio: `systemctl list-timers ip-tracker-backup.timer`
+- Ver que hizo: `journalctl -u ip-tracker-backup`
+- Backup inmediato: `sudo systemctl start ip-tracker-backup`
+
+**Las copias quedan en el mismo servidor.** Copialas a otro equipo, por
+ejemplo con `rsync` desde un NAS.
+
+### Desde la web
 
 1. Ve a **Configuracion** → seccion **Base de datos**
 2. Presiona **Descargar respaldo (.db)**
 3. El archivo se guarda con nombre `ip_tracker_YYYY-MM-DD.db`
 
-> **Problema conocido:** en las instalaciones hechas con `install.sh`, este
-> boton descarga una base vacia. Mientras no se corrija, hace el backup por
-> consola: `sudo systemctl stop ip-tracker && sudo cp /opt/ip-tracker/ip_tracker.db /root/ && sudo systemctl start ip-tracker`
+La copia se hace sin detener el servicio.
 
-> **Tip:** Programa backups periodicos en tu servidor con `cron` si necesitas retencion externa.
+### Restaurar
+
+Para restaurar una copia:
+
+```bash
+sudo systemctl stop ip-tracker
+sudo cp /opt/ip-tracker/ip_tracker.db /opt/ip-tracker/ip_tracker.db.antes-de-restaurar
+sudo install -o iptracker -g iptracker -m 644 /var/backups/ip-tracker/ip_tracker-AAAAMMDD-HHMMSS.db /opt/ip-tracker/ip_tracker.db
+sudo systemctl start ip-tracker
+```
 
 ---
 

@@ -2,6 +2,8 @@ import io
 import os
 import re
 import sys
+import time
+import argparse
 import sqlite3
 import logging
 import ipaddress
@@ -542,23 +544,57 @@ def settings():
 # Routes - Backup
 # ---------------------------------------------------------------------------
 
+BACKUP_PREFIX = 'ip_tracker-'
+DEFAULT_BACKUP_KEEP_DAYS = 14
+
+
+def _backup_database(dest_path):
+    """Copy the database in use to dest_path with SQLite's online backup API."""
+    raw = db.engine.raw_connection()
+    try:
+        dst = sqlite3.connect(dest_path)
+        try:
+            raw.driver_connection.backup(dst)
+        finally:
+            dst.close()
+    finally:
+        raw.close()
+
+
+def backup_to_directory(directory, keep_days=DEFAULT_BACKUP_KEEP_DAYS):
+    """Write a timestamped backup into directory and delete those older than keep_days."""
+    os.makedirs(directory, exist_ok=True)
+    name = f"{BACKUP_PREFIX}{datetime.now().strftime('%Y%m%d-%H%M%S')}.db"
+    final_path = os.path.join(directory, name)
+    partial_path = final_path + '.partial'
+    try:
+        _backup_database(partial_path)
+        os.replace(partial_path, final_path)
+    finally:
+        if os.path.exists(partial_path):
+            os.remove(partial_path)
+
+    cutoff = time.time() - keep_days * 86400
+    for entry in os.listdir(directory):
+        path = os.path.join(directory, entry)
+        if (entry.startswith(BACKUP_PREFIX) and entry.endswith('.db')
+                and entry != name and os.path.getmtime(path) < cutoff):
+            os.remove(path)
+    return final_path
+
+
 @app.route('/backup/db')
 def backup_db():
-    db_path = os.path.join(app.instance_path, 'ip_tracker.db')
     filename = f"ip_tracker_{datetime.utcnow().strftime('%Y-%m-%d')}.db"
     try:
         fd, tmp_path = tempfile.mkstemp(suffix='.db')
         os.close(fd)
-        src = sqlite3.connect(db_path)
-        dst = sqlite3.connect(tmp_path)
-        src.backup(dst)
-        dst.close()
-        src.close()
-        buf = io.BytesIO()
-        with open(tmp_path, 'rb') as f:
-            buf.write(f.read())
-        buf.seek(0)
-        os.unlink(tmp_path)
+        try:
+            _backup_database(tmp_path)
+            with open(tmp_path, 'rb') as f:
+                buf = io.BytesIO(f.read())
+        finally:
+            os.unlink(tmp_path)
         return send_file(buf, as_attachment=True, download_name=filename,
                          mimetype='application/x-sqlite3')
     except Exception as exc:
@@ -1004,15 +1040,29 @@ def _init_db():
     _migrate_db()
 
 
+def _build_parser():
+    parser = argparse.ArgumentParser(prog='python app.py', description='Comandos de administracion')
+    commands = parser.add_subparsers(dest='command', required=True)
+    commands.add_parser('init-admin', help='Genera la contraseña de admin si no hay una')
+    commands.add_parser('reset-password', help='Genera una contraseña nueva para admin')
+    backup = commands.add_parser('backup', help='Copia la base a una carpeta y borra las viejas')
+    backup.add_argument('directory')
+    backup.add_argument('--keep-days', type=int, default=DEFAULT_BACKUP_KEEP_DAYS)
+    return parser
+
+
 def cli(argv):
-    """Admin commands: init-admin (set a password if none) and reset-password."""
-    command = argv[0] if argv else ''
-    if command not in ('init-admin', 'reset-password'):
-        print('Uso: python app.py [init-admin | reset-password]', file=sys.stderr)
-        return 2
+    """Admin commands: init-admin, reset-password and backup."""
+    try:
+        args = _build_parser().parse_args(argv)
+    except SystemExit as exc:
+        return exc.code
     with app.app_context():
         _init_db()
-        if command == 'init-admin':
+        if args.command == 'backup':
+            print(f"Backup: {backup_to_directory(args.directory, args.keep_days)}")
+            return 0
+        if args.command == 'init-admin':
             password = ensure_admin_password()
             if password is None:
                 print('El administrador ya tiene contraseña; no se cambió. '

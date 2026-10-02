@@ -27,6 +27,8 @@ FILES=(
     "install.sh"
     "admin.sh"
     "ip-tracker.service"
+    "ip-tracker-backup.service"
+    "ip-tracker-backup.timer"
     "conftest.py"
     ".gitignore"
 )
