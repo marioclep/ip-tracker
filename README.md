@@ -2,6 +2,8 @@
 
 Aplicacion web Flask para registrar y consultar asignaciones IP (DHCPv4, PPPoE e IPv6) de routers MikroTik. Diseñada para operaciones de ISP.
 
+> ¿Instalas con ayuda de un asistente de IA? Pedile que lea [`AGENTS.md`](AGENTS.md): tiene la instalacion paso a paso, como verificarla y que no hay que tocar.
+
 ## Caracteristicas
 
 - **Dashboard** — KPIs de DHCP, PPPoE e IPv6 activos
@@ -19,7 +21,7 @@ Aplicacion web Flask para registrar y consultar asignaciones IP (DHCPv4, PPPoE e
 
 - Ubuntu Server 22.04+ / Debian 12+
 - Python 3.9+
-- Git (opcional)
+- Git y rsync
 
 ## Instalacion automatica
 
@@ -89,7 +91,7 @@ Agrega tus routers MikroTik desde el panel de Configuracion:
 |-------|-------------|
 | Nombre | Identificador del router |
 | Host | IP del router |
-| Puerto API | 8728 (o 8729 para SSL) |
+| Puerto API | 8728 (API sin SSL; `api-ssl`/8729 no esta soportado) |
 | Usuario | Usuario con permisos API |
 | Contraseña | Contraseña del usuario |
 | Habilitado | Activar/Desactivar polling |
@@ -98,7 +100,7 @@ Agrega tus routers MikroTik desde el panel de Configuracion:
 
 ```bash
 cd /opt/ip-tracker
-sudo git pull origin main
+sudo git -c safe.directory=/opt/ip-tracker pull origin main
 sudo bash install.sh
 ```
 

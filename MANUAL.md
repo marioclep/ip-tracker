@@ -149,30 +149,27 @@ Consulta datos publicos de una direccion IP via RDAP (whois moderno).
 
 ### Agregar un router
 
-1. Ve a **Configuracion** → pestana **Routers**
-2. Presiona **Nuevo router**
+1. Ve a **Routers** en el menu
+2. Presiona **Agregar router**
 3. Completa los campos:
 
 | Campo | Descripcion |
 |-------|-------------|
 | Nombre | Identificador descriptivo |
 | Host | IP o hostname del router MikroTik |
-| Puerto API | `8728` (por defecto) o `8729` para SSL |
+| Puerto API | `8728` (API sin SSL; `api-ssl`/8729 no esta soportado) |
 | Usuario | Usuario con permisos de API read |
 | Contraseña | Contraseña del usuario |
 | Habilitado | Activa o desactiva el polling |
 
-4. Presiona **Guardar**
-5. El sistema comenzara a hacer polling automatico en el proximo ciclo
+4. Opcional: presiona **Probar conexion** para verificar que la API responde
+5. Presiona **Guardar**
+6. El sistema comenzara a hacer polling automatico en el proximo ciclo
 
 ### Editar / Eliminar
 
 - Presiona **Editar** en la fila del router para modificar sus datos
 - Presiona **Eliminar** para quitarlo de la base de datos (esto tambien elimina todos sus registros historicos asociados)
-
-### Test de conexion
-
-Presiona **Probar** en la fila del router para verificar que la API responde correctamente.
 
 ---
 
@@ -188,7 +185,7 @@ Presiona **Probar** en la fila del router para verificar que la API responde cor
 
 ### Cambiar credenciales
 
-1. Ve a **Configuracion** → pestana **Contraseña**
+1. Ve a **Configuracion** y presiona **Cambiar credenciales**
 2. Ingresa el nuevo usuario
 3. Ingresa la nueva contraseña (minimo 6 caracteres)
 4. Confirma la contraseña
@@ -202,9 +199,13 @@ Presiona **Probar** en la fila del router para verificar que la API responde cor
 
 Descarga una copia de la base de datos SQLite completa.
 
-1. Ve a **Configuracion** → pestana **Backup**
-2. Presiona **Descargar backup**
+1. Ve a **Configuracion** → seccion **Base de datos**
+2. Presiona **Descargar respaldo (.db)**
 3. El archivo se guarda con nombre `ip_tracker_YYYY-MM-DD.db`
+
+> **Problema conocido:** en las instalaciones hechas con `install.sh`, este
+> boton descarga una base vacia. Mientras no se corrija, hace el backup por
+> consola: `sudo systemctl stop ip-tracker && sudo cp /opt/ip-tracker/ip_tracker.db /root/ && sudo systemctl start ip-tracker`
 
 > **Tip:** Programa backups periodicos en tu servidor con `cron` si necesitas retencion externa.
 

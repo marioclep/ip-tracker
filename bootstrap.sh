@@ -55,7 +55,7 @@ info "Actualizando paquetes del sistema..."
 apt-get update -qq
 
 info "Instalando dependencias del sistema (python3, venv, pip)..."
-apt-get install -y -qq python3 python3-venv python3-pip git
+apt-get install -y -qq python3 python3-venv python3-pip git rsync
 
 # Verificar Python 3.9+
 PY_VER=$(python3 -c "import sys; print(sys.version_info.minor)")
