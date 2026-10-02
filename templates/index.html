@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – IP Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-speedometer2"></i> Dashboard</h4>
+  <form method="POST" action="{{ url_for('poll_all_now') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary btn-sm">
+      <i class="bi bi-arrow-repeat"></i> Sondear todos ahora
+    </button>
+  </form>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="card text-bg-primary h-100">
+      <div class="card-body">
+        <div class="text-white-50 small mb-1"><i class="bi bi-hdd-network"></i> Routers</div>
+        <div class="display-6 fw-bold">{{ routers|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card text-bg-success h-100">
+      <div class="card-body">
+        <div class="text-white-50 small mb-1"><i class="bi bi-ethernet"></i> DHCP</div>
+        <div class="display-6 fw-bold">{{ active_dhcp }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card text-bg-info h-100">
+      <div class="card-body">
+        <div class="text-white-50 small mb-1"><i class="bi bi-plug"></i> PPPoE</div>
+        <div class="display-6 fw-bold">{{ active_ppp }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card h-100" style="background-color:#6f42c1">
+      <div class="card-body">
+        <div class="text-white-50 small mb-1"><i class="bi bi-diagram-3"></i> IPv6</div>
+        <div class="display-6 fw-bold">{{ active_v6 }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card text-bg-warning h-100">
+      <div class="card-body">
+        <div class="text-dark-50 small mb-1"><i class="bi bi-database"></i> Registros</div>
+        <div class="display-6 fw-bold">{{ total_records }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="card text-bg-secondary h-100">
+      <div class="card-body">
+        <div class="text-white-50 small mb-1"><i class="bi bi-clock-history"></i> Intervalo</div>
+        <div class="display-6 fw-bold">{{ settings.poll_interval_minutes }}<small class="fs-5">min</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Routers table -->
+<div class="card">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">Estado de routers</h6>
+    <a href="{{ url_for('router_add') }}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-plus-circle"></i> Agregar router
+    </a>
+  </div>
+  {% if routers %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>Host</th>
+          <th>Estado</th>
+          <th>Ultimo sondeo ({{ tz_name }})</th>
+          <th>DHCP</th>
+          <th>PPPoE</th>
+          <th>IPv6</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in routers %}
+        <tr>
+          <td>
+            {% if not r.enabled %}<span class="text-muted">{% endif %}
+            <strong>{{ r.name }}</strong>
+            {% if not r.enabled %}</span>{% endif %}
+          </td>
+          <td><code>{{ r.host }}</code></td>
+          <td>
+            {% if not r.enabled %}
+              <span class="badge bg-secondary">Deshabilitado</span>
+            {% elif r.last_poll_status == 'ok' %}
+              <span class="badge bg-success"><i class="bi bi-check-circle"></i> OK</span>
+            {% elif r.last_poll_status == 'error' %}
+              <span class="badge bg-danger" title="{{ r.last_poll_error }}">
+                <i class="bi bi-exclamation-triangle"></i> Error
+              </span>
+            {% else %}
+              <span class="badge bg-secondary">Sin sondear</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.last_poll %}
+              <small>{{ to_local(r.last_poll) }}</small>
+            {% else %}
+              <small class="text-muted">Nunca</small>
+            {% endif %}
+          </td>
+          <td>{{ r.last_poll_dhcp_count if r.last_poll_dhcp_count is not none else '—' }}</td>
+          <td>{{ r.last_poll_ppp_count if r.last_poll_ppp_count is not none else '—' }}</td>
+          <td>{{ r.last_poll_ipv6_count if r.last_poll_ipv6_count is not none else '—' }}</td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('router_poll_now', router_id=r.id) }}"
+                  class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-primary"
+                      {% if not r.enabled %}disabled{% endif %}
+                      title="Sondear ahora">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+            </form>
+            <a href="{{ url_for('router_edit', router_id=r.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+          </td>
+        </tr>
+        {% if r.last_poll_status == 'error' and r.last_poll_error %}
+        <tr class="table-danger">
+          <td colspan="8" class="py-1">
+            <small><i class="bi bi-exclamation-triangle-fill"></i>
+              <strong>Error:</strong> {{ r.last_poll_error }}
+            </small>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-hdd-network display-3"></i>
+    <p class="mt-3 mb-0">No hay routers configurados todavia.</p>
+    <a href="{{ url_for('router_add') }}" class="btn btn-primary mt-3">
+      <i class="bi bi-plus-circle"></i> Agregar primer router
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

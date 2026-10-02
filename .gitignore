@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.db
+instance/
+.DS_Store
+.superpowers/
+.pytest_cache/
+.claude/
+CLAUDE.local.md
+SESSION_RESUME.md

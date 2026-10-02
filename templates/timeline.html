@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Timeline de Cliente – IP Tracker{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-clock-history"></i> Timeline de Cliente</h4>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Historial completo de asignaciones IPv4/IPv6 de un cliente por MAC o usuario PPPoE.
+      Horarios en <strong>{{ tz_name }}</strong>.
+    </p>
+    <form method="GET" action="{{ url_for('timeline') }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">MAC Address</label>
+          <input type="text" name="mac" class="form-control" value="{{ query_mac }}"
+                 placeholder="AA:BB:CC:DD:EE:FF">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Usuario PPPoE</label>
+          <input type="text" name="user" class="form-control" value="{{ query_user }}"
+                 placeholder="usuario@isp">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Desde</label>
+          <input type="datetime-local" name="from" class="form-control" value="{{ query_from }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-semibold">Hasta</label>
+          <input type="datetime-local" name="to" class="form-control" value="{{ query_to }}">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i> Consultar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if searched %}
+<div class="alert alert-light border">
+  <strong>{{ results|length }}</strong> evento(s) encontrado(s).
+</div>
+
+<div class="timeline-wrapper position-relative" style="padding-left:30px;">
+  <div class="timeline-line position-absolute"
+       style="left:14px;top:0;bottom:0;width:2px;background:#dee2e6;"></div>
+
+  {% for event in results %}
+  <div class="timeline-item mb-4 position-relative">
+    <span class="position-absolute rounded-circle border border-white"
+          style="left:-22px;top:6px;width:14px;height:14px;
+          {% if event.type == 'dhcp' %}background:#0d6efd
+          {% elif event.type == 'pppoe' %}background:#dc3545
+          {% else %}background:#6f42c1{% endif %};"></span>
+
+    <div class="card">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="badge
+              {% if event.type == 'dhcp' %}bg-primary
+              {% elif event.type == 'pppoe' %}bg-danger
+              {% else %}bg-purple{% endif %}">
+              {% if event.type == 'dhcp' %}DHCPv4
+              {% elif event.type == 'pppoe' %}PPPoE
+              {% else %}IPv6{% endif %}
+            </span>
+            <code class="fs-5">{{ event.ip }}</code>
+            <span class="badge {{ 'bg-success' if event.active else 'bg-secondary' }}">
+              {% if event.type == 'dhcp' %}
+                {{ 'Activo' if event.active else 'Expirado' }}
+              {% elif event.type == 'pppoe' %}
+                {{ 'Activo' if event.active else 'Desconectado' }}
+              {% else %}
+                {{ 'Activo' if event.active else 'Expirado' }}
+              {% endif %}
+            </span>
+          </div>
+          <small class="text-muted">{{ event.router_name }}</small>
+        </div>
+
+        <div class="mt-2 d-flex flex-wrap gap-x-4 text-muted small">
+          {% if event.mac %}
+            <span><i class="bi bi-ethernet"></i> {{ event.mac }}</span>
+          {% endif %}
+          {% if event.user %}
+            <span class="ms-3"><i class="bi bi-person"></i> {{ event.user }}</span>
+          {% endif %}
+          <span class="ms-3">
+            {% set start = to_local(event.start) %}
+            {% set end = to_local(event.end) %}
+            <i class="bi bi-calendar3"></i> {{ start }}{% if end %} → {{ end }}{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Metricas del servidor – IP Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-activity"></i> Metricas del servidor</h4>
+  <div class="btn-group" role="group" id="rangeButtons">
+    <button class="btn btn-sm btn-outline-primary active" data-range="day">24 horas</button>
+    <button class="btn btn-sm btn-outline-primary" data-range="week">7 dias</button>
+    <button class="btn btn-sm btn-outline-primary" data-range="month">30 dias</button>
+    <button class="btn btn-sm btn-outline-primary" data-range="year">1 ano</button>
+  </div>
+</div>
+
+<div id="noData" class="alert alert-info d-none">
+  <i class="bi bi-info-circle"></i>
+  Todavia no hay suficientes datos. Las metricas se recolectan cada 5 minutos.
+</div>
+
+<div class="row g-3">
+  <!-- CPU -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold"><i class="bi bi-cpu text-primary"></i> CPU</span>
+        <span id="cpuCurrent" class="badge bg-primary">—</span>
+      </div>
+      <div class="card-body py-2">
+        <canvas id="cpuChart" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold"><i class="bi bi-memory text-success"></i> Memoria RAM</span>
+        <span id="memCurrent" class="badge bg-success">—</span>
+      </div>
+      <div class="card-body py-2">
+        <canvas id="memChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disk -->
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold"><i class="bi bi-hdd text-warning"></i> Disco</span>
+        <span id="diskCurrent" class="badge bg-warning text-dark">—</span>
+      </div>
+      <div class="card-body py-2">
+        <canvas id="diskChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var currentRange = 'day';
+
+  function createChart(canvasId, label, color) {
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: label,
+          data: [],
+          borderColor: color,
+          backgroundColor: color + '22',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 0,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: true, ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+          y: { display: true, min: 0, max: 100, ticks: { callback: function(v) { return v + '%'; }, font: { size: 10 } } }
+        },
+        interaction: { intersect: false, mode: 'index' },
+      }
+    });
+  }
+
+  var cpuChart = createChart('cpuChart', 'CPU', '#0d6efd');
+  var memChart = createChart('memChart', 'Memoria', '#198754');
+  var diskChart = createChart('diskChart', 'Disco', '#ffc107');
+
+  function updateCurrentBadge(values, badgeId) {
+    var el = document.getElementById(badgeId);
+    if (values.length > 0) {
+      el.textContent = values[values.length - 1].toFixed(1) + '%';
+    }
+  }
+
+  function load(range) {
+    currentRange = range;
+    fetch('/api/metrics?range=' + range)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.labels.length === 0) {
+          document.getElementById('noData').classList.remove('d-none');
+          return;
+        }
+        document.getElementById('noData').classList.add('d-none');
+
+        cpuChart.data.labels = data.labels;
+        cpuChart.data.datasets[0].data = data.cpu;
+        cpuChart.update();
+
+        memChart.data.labels = data.labels;
+        memChart.data.datasets[0].data = data.memory;
+        memChart.update();
+
+        diskChart.data.labels = data.labels;
+        diskChart.data.datasets[0].data = data.disk;
+        diskChart.update();
+
+        updateCurrentBadge(data.cpu, 'cpuCurrent');
+        updateCurrentBadge(data.memory, 'memCurrent');
+        updateCurrentBadge(data.disk, 'diskCurrent');
+      });
+  }
+
+  document.getElementById('rangeButtons').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-range]');
+    if (!btn) return;
+    this.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    load(btn.dataset.range);
+  });
+
+  load('day');
+})();
+</script>
+{% endblock %}

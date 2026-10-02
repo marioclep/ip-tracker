@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}IP Lookup – IP Tracker{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-globe2"></i> IP Lookup</h4>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      Consulta los datos de registro RDAP de una IP publica: propietario, rango asignado, ASN y contacto de abuso.
+    </p>
+    <form method="GET" action="{{ url_for('lookup') }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Direccion IP</label>
+          <input type="text" name="ip" class="form-control"
+                 value="{{ query_ip }}"
+                 placeholder="Ej: 8.8.8.8 o 2001:4860:4860::8888"
+                 autofocus>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i> Consultar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> {{ error }}</div>
+{% endif %}
+
+{% if result %}
+<div class="card">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-info-circle"></i> Resultado para <code>{{ query_ip }}</code>
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <tbody>
+        <tr>
+          <th style="width:220px" class="ps-3">Organizacion</th>
+          <td>{{ result.org or '—' }}</td>
+        </tr>
+        <tr>
+          <th class="ps-3">Rango asignado</th>
+          <td>{% if result.cidr %}<code>{{ result.cidr }}</code>{% else %}—{% endif %}</td>
+        </tr>
+        <tr>
+          <th class="ps-3">Pais</th>
+          <td>{{ result.country or '—' }}</td>
+        </tr>
+        <tr>
+          <th class="ps-3">ASN</th>
+          <td>{{ result.asn or '—' }} {{ result.asn_desc or '' }}</td>
+        </tr>
+        <tr>
+          <th class="ps-3">RIR</th>
+          <td>{{ result.rir or '—' }}</td>
+        </tr>
+        <tr>
+          <th class="ps-3">Email de abuso</th>
+          <td>
+            {% if result.abuse_email %}
+              <a href="mailto:{{ result.abuse_email }}">{{ result.abuse_email }}</a>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

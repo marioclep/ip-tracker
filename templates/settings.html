@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Configuracion – IP Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <h4 class="mb-3"><i class="bi bi-gear"></i> Configuracion</h4>
+
+    <div class="card">
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <h6 class="text-muted text-uppercase small mb-3">Sondeo automatico</h6>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Intervalo de sondeo (minutos)</label>
+            <div class="input-group" style="max-width:220px">
+              <input type="number" name="poll_interval_minutes"
+                     class="form-control"
+                     value="{{ settings.poll_interval_minutes }}"
+                     min="1" max="1440">
+              <span class="input-group-text">min</span>
+            </div>
+            <div class="form-text">
+              Cada cuantos minutos se consultan todos los routers habilitados.<br>
+              Valores recomendados: 1 a 5 minutos.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Retencion de datos (dias)</label>
+            <div class="input-group" style="max-width:220px">
+              <input type="number" name="retention_days"
+                     class="form-control"
+                     value="{{ settings.retention_days }}"
+                     min="1" max="3650">
+              <span class="input-group-text">dias</span>
+            </div>
+            <div class="form-text">
+              Registros inactivos mas antiguos que este valor se eliminan automaticamente.
+            </div>
+          </div>
+
+          <hr>
+          <h6 class="text-muted text-uppercase small mb-3">Zona horaria</h6>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Zona horaria de visualizacion</label>
+            <select name="timezone" class="form-select" style="max-width:420px">
+              {% set tz_options = [
+                ('UTC',                                   'UTC (sin ajuste)'),
+                ('America/Argentina/Buenos_Aires',        'Argentina – Buenos Aires (UTC-3)'),
+                ('America/Argentina/Cordoba',             'Argentina – Cordoba (UTC-3)'),
+                ('America/Argentina/Mendoza',             'Argentina – Mendoza (UTC-3)'),
+                ('America/Argentina/Tucuman',             'Argentina – Tucuman (UTC-3)'),
+                ('America/Argentina/Jujuy',               'Argentina – Jujuy (UTC-3)'),
+                ('America/Argentina/Catamarca',           'Argentina – Catamarca (UTC-3)'),
+                ('America/Argentina/La_Rioja',            'Argentina – La Rioja (UTC-3)'),
+                ('America/Argentina/Salta',               'Argentina – Salta (UTC-3)'),
+                ('America/Argentina/San_Luis',            'Argentina – San Luis (UTC-3)'),
+                ('America/Argentina/San_Juan',            'Argentina – San Juan (UTC-3)'),
+                ('America/Argentina/Rio_Gallegos',        'Argentina – Rio Gallegos (UTC-3)'),
+                ('America/Argentina/Ushuaia',             'Argentina – Ushuaia (UTC-3)'),
+                ('America/Montevideo',                    'Uruguay (UTC-3)'),
+                ('America/Santiago',                      'Chile (UTC-3/-4)'),
+                ('America/Lima',                          'Peru (UTC-5)'),
+                ('America/Bogota',                        'Colombia (UTC-5)'),
+                ('America/Mexico_City',                   'Mexico (UTC-5/-6)'),
+                ('America/New_York',                      'New York (UTC-4/-5)'),
+                ('America/Chicago',                       'Chicago (UTC-5/-6)'),
+                ('America/Denver',                        'Denver (UTC-6/-7)'),
+                ('America/Los_Angeles',                   'Los Angeles (UTC-7/-8)'),
+                ('Europe/Madrid',                         'España (UTC+1/+2)'),
+                ('Europe/Berlin',                         'Alemania (UTC+1/+2)'),
+                ('Europe/London',                         'Reino Unido (UTC+0/+1)'),
+                ('Asia/Tokyo',                            'Japon (UTC+9)'),
+                ('Asia/Shanghai',                         'China (UTC+8)'),
+                ('Australia/Sydney',                      'Sydney (UTC+10/+11)'),
+              ] %}
+              {% for val, label in tz_options %}
+              <option value="{{ val }}" {% if settings.timezone == val %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <hr>
+          <h6 class="text-muted text-uppercase small mb-3">Credenciales</h6>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Credenciales actuales</label>
+            <p class="text-muted small">
+              <i class="bi bi-person"></i> <strong>{{ settings.admin_username }}</strong>
+            </p>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                  data-bs-target="#passwordModal">
+            <i class="bi bi-key"></i> Cambiar credenciales
+          </button>
+
+          <hr class="mt-4">
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg"></i> Guardar configuracion
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-database"></i> Base de datos</h6>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          La base de datos se almacena en <code>ip_tracker.db</code> en el directorio
+          de la aplicacion.
+        </p>
+        <a href="{{ url_for('backup_db') }}" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-download"></i> Descargar respaldo (.db)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-key"></i> Cambiar credenciales</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="action" value="password">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nuevo usuario</label>
+            <input type="text" name="new_username" class="form-control"
+                   value="{{ settings.admin_username }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nueva contrasena</label>
+            <input type="password" name="new_password" class="form-control"
+                   autocomplete="new-password" required minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Confirmar contrasena</label>
+            <input type="password" name="confirm_password" class="form-control"
+                   autocomplete="new-password" required minlength="6">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-check-lg"></i> Actualizar credenciales
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

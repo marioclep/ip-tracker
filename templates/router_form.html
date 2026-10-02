@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Router – IP Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header bg-white">
+        <h5 class="mb-0">
+          <i class="bi bi-hdd-network"></i> {{ action }} Router
+        </h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre</label>
+            <input type="text" name="name" class="form-control"
+                   value="{{ router.name if router else '' }}"
+                   placeholder="Ej: Router Central" required>
+            <div class="form-text">Nombre descriptivo para identificar este equipo.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Host / IP</label>
+            <input type="text" name="host" class="form-control"
+                   value="{{ router.host if router else '' }}"
+                   placeholder="192.168.1.1" required>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Usuario API</label>
+              <input type="text" name="username" class="form-control"
+                     value="{{ router.username if router else 'admin' }}"
+                     required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">
+                Contrasena
+                {% if router %}<small class="text-muted">(dejar vacio = no cambiar)</small>{% endif %}
+              </label>
+              <input type="password" name="password" class="form-control"
+                     autocomplete="new-password"
+                     placeholder="{% if router %}••••••••{% endif %}"
+                     value="">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Puerto API</label>
+              <input type="number" name="api_port" class="form-control"
+                     value="{{ router.api_port if router else 8728 }}"
+                     min="1" max="65535">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Habilitado</label>
+              <div class="form-check form-switch mt-2">
+                <input type="checkbox" name="enabled" class="form-check-input" id="enabled"
+                       {% if not router or router.enabled %}checked{% endif %}>
+                <label class="form-check-label" for="enabled">
+                  {% if not router or router.enabled %}Sí{% else %}No{% endif %}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg"></i> Guardar
+            </button>
+            <a href="{{ url_for('routers_list') }}" class="btn btn-outline-secondary">
+              Cancelar
+            </a>
+          </div>
+
+          <div class="mt-3">
+            <button type="button" id="btnTest" class="btn btn-sm btn-outline-info">
+              <i class="bi bi-wifi"></i> Probar conexion
+            </button>
+            <span id="testResult" class="ms-2 small"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btnTest').addEventListener('click', function() {
+  var btn = this;
+  var result = document.getElementById('testResult');
+  btn.disabled = true;
+  result.innerHTML = '<span class="text-muted">Probando...</span>';
+  fetch('/api/test-connection', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
+    },
+    body: JSON.stringify({
+      host: document.querySelector('[name=host]').value,
+      username: document.querySelector('[name=username]').value,
+      password: document.querySelector('[name=password]').value,
+      port: parseInt(document.querySelector('[name=api_port]').value) || 8728
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    if (data.success) {
+      result.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> ' + data.message + '</span>';
+    } else {
+      result.innerHTML = '<span class="text-danger"><i class="bi bi-x-circle"></i> ' + data.message + '</span>';
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    result.innerHTML = '<span class="text-danger">Error de red</span>';
+  });
+});
+</script>
+{% endblock %}

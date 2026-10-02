@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Routers – IP Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-hdd-network"></i> Routers</h4>
+  <a href="{{ url_for('router_add') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-circle"></i> Agregar router
+  </a>
+</div>
+
+<div class="card">
+  {% if routers %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>Host</th>
+          <th>Puerto API</th>
+          <th>Usuario</th>
+          <th>Habilitado</th>
+          <th>Ultimo estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in routers %}
+        <tr>
+          <td><strong>{{ r.name }}</strong></td>
+          <td><code>{{ r.host }}</code></td>
+          <td>{{ r.api_port }}</td>
+          <td>{{ r.username }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('router_toggle', router_id=r.id) }}"
+                  class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="btn btn-sm {{ 'btn-success' if r.enabled else 'btn-outline-secondary' }}">
+                {% if r.enabled %}
+                  <i class="bi bi-toggle-on"></i> Si
+                {% else %}
+                  <i class="bi bi-toggle-off"></i> No
+                {% endif %}
+              </button>
+            </form>
+          </td>
+          <td>
+            {% if r.last_poll_status == 'ok' %}
+              <span class="badge bg-success">OK</span>
+            {% elif r.last_poll_status == 'error' %}
+              <span class="badge bg-danger"
+                    title="{{ r.last_poll_error }}">Error</span>
+            {% else %}
+              <span class="badge bg-secondary">Sin sondear</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('router_edit', router_id=r.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('router_delete', router_id=r.id) }}"
+                  class="d-inline" onsubmit="return confirm('Eliminando {{ r.name }}. Continuar?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-hdd-network display-3"></i>
+    <p class="mt-3 mb-0">No hay routers configurados todavia.</p>
+    <a href="{{ url_for('router_add') }}" class="btn btn-primary mt-3">
+      <i class="bi bi-plus-circle"></i> Agregar primer router
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

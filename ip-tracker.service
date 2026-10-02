@@ -1,0 +1,21 @@
+[Unit]
+Description=IP Tracker - Registro de asignaciones IP para ISPs
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=iptracker
+Group=iptracker
+WorkingDirectory=/opt/ip-tracker
+# SECRET_KEY y DATABASE_URL: los genera install.sh la primera vez
+EnvironmentFile=/etc/ip-tracker.env
+ExecStart=/opt/ip-tracker/.venv/bin/python app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ip-tracker
+
+[Install]
+WantedBy=multi-user.target
